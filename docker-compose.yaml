@@ -1,5 +1,16 @@
 version: '3.8'
 services:
+  web:
+    build: .
+    container_name: auth_app
+    restart: always
+    env_file:
+      - .env
+    depends_on:
+      - db
+    volumes:
+      - ./:/app
+
   db:
     image: postgres:latest
     restart: no
@@ -9,6 +20,17 @@ services:
       - .env
     ports:
       - "5434:5432"
+
+  nginx:
+    image: nginx:1.23-alpine
+    container_name: nginx
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./configs/nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - web
 
 volumes:
   postgres-data:
