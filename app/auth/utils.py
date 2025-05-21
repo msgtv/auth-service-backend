@@ -32,9 +32,7 @@ def create_tokens(data: dict) -> dict:
     return {"access_token": access_token, "refresh_token": refresh_token}
 
 
-async def authenticate_user(username, password):
-    user = await UsersDAO
-
+async def authenticate_user(user, password):
     if (
             not user
             or
