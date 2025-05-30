@@ -19,10 +19,16 @@ UserIdNotFoundException = HTTPException(
 )
 
 # Неверная почта или пароль
-IncorrectEmailOrPasswordException = HTTPException(
-    status_code=status.HTTP_400_BAD_REQUEST,
-    detail='Неверная почта или пароль'
-)
+class IncorrectEmailOrPasswordException(HTTPException):
+    status_code = status.HTTP_401_UNAUTHORIZED
+    detail = 'Неверные имя пользователя или пароль'
+
+    def __init__(self, headers: dict[str, str | int]):
+        super().__init__(
+            status_code=self.status_code,
+            detail=self.detail,
+            headers=headers,
+        )
 
 # Токен истек
 TokenExpiredException = HTTPException(
