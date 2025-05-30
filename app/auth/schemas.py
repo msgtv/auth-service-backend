@@ -50,3 +50,13 @@ class SUserInfo(UserBase):
     @computed_field
     def role_id(self) -> int:
         return self.role.id
+
+
+class SAccessToken(BaseModel):
+    access_token: str
+
+class SRefreshToken(BaseModel):
+    refresh_token: str
+
+class STokens(SAccessToken, SRefreshToken):
+    token_type: str = "Bearer"
