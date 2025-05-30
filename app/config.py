@@ -16,9 +16,15 @@ class Settings(BaseSettings):
 
     TEST_POSTGRES_USER: str
     TEST_POSTGRES_PASSWORD: str
+    TEST_POSTGRES_DB: str
     TEST_POSTGRES_HOST: str
     TEST_POSTGRES_PORT: int
-    TEST_POSTGRES_DB: str
+
+    # Redis settings
+    REDIS_HOST: str
+    REDIS_PORT: int
+    REDIS_DB: int
+    REDIS_PASSWORD: str | None
 
     model_config = SettingsConfigDict(env_file=f".env")
 

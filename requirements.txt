@@ -12,3 +12,4 @@ passlib[bcrypt]==1.7.4
 python-jose==3.4.0
 loguru==0.7.2
 sqladmin==0.20.1
+redis==6.2.0
