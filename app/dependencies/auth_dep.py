@@ -1,5 +1,8 @@
 from datetime import datetime, timezone
+from typing import Annotated
+
 from fastapi import Request, Depends
+from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError, ExpiredSignatureError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,6 +13,9 @@ from app.dependencies.dao_dep import get_session_without_commit
 from app.exceptions import (
     TokenNoFound, NoJwtException, TokenExpiredException, NoUserIdException, ForbiddenException, UserNotFoundException
 )
+
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token")
 
 
 def get_access_token(request: Request) -> str:
@@ -30,14 +36,14 @@ def get_refresh_token(request: Request) -> str:
 
 async def check_refresh_token(
         token: str = Depends(get_refresh_token),
-        session: AsyncSession = Depends(get_session_without_commit)
+        session: AsyncSession = Depends(get_session_without_commit),
 ) -> User:
     """ Проверяем refresh_token и возвращаем пользователя."""
     try:
         payload = jwt.decode(
             token,
             settings.SECRET_KEY,
-            algorithms=[settings.ALGORITHM]
+            algorithms=[settings.ALGORITHM],
         )
         user_id = payload.get("sub")
         if not user_id:
@@ -53,7 +59,7 @@ async def check_refresh_token(
 
 
 async def get_current_user(
-        token: str = Depends(get_access_token),
+        token: Annotated[str, Depends(oauth2_scheme)],
         session: AsyncSession = Depends(get_session_without_commit)
 ) -> User:
     """Проверяем access_token и возвращаем пользователя."""
