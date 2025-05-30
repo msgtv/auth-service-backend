@@ -23,7 +23,7 @@ class IncorrectEmailOrPasswordException(HTTPException):
     status_code = status.HTTP_401_UNAUTHORIZED
     detail = 'Неверные имя пользователя или пароль'
 
-    def __init__(self, headers: dict[str, str | int]):
+    def __init__(self, headers: dict[str, str | int] = None):
         super().__init__(
             status_code=self.status_code,
             detail=self.detail,
@@ -59,6 +59,12 @@ NoJwtException = HTTPException(
 NoUserIdException = HTTPException(
     status_code=status.HTTP_404_NOT_FOUND,
     detail='Не найден ID пользователя'
+)
+
+# Не найден ID сессии
+NoSessionJwtException = HTTPException(
+    status_code=status.HTTP_404_NOT_FOUND,
+    detail='Токен не привязан к сессии'
 )
 
 # Недостаточно прав
