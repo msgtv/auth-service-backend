@@ -11,7 +11,7 @@ def create_tokens(data: dict) -> dict:
     now = datetime.now(timezone.utc)
 
     # AccessToken - 30 минут
-    access_expire = now + timedelta(minutes=10)
+    access_expire = now + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_payload = data.copy()
     access_payload.update({"exp": int(access_expire.timestamp()), "type": "access"})
     access_token = jwt.encode(
@@ -21,7 +21,7 @@ def create_tokens(data: dict) -> dict:
     )
 
     # RefreshToken - 7 дней
-    refresh_expire = now + timedelta(days=7)
+    refresh_expire = now + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     refresh_payload = data.copy()
     refresh_payload.update({"exp": int(refresh_expire.timestamp()), "type": "refresh"})
     refresh_token = jwt.encode(
