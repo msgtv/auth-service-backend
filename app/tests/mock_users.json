@@ -1,0 +1,30 @@
+[
+  {
+    "first_name": "Mikhail",
+    "last_name": "Kotov",
+    "username": "defaultuser",
+    "password": "$2b$12$W7NY9VZvCIYY7BTAQAlPuezbntP0ncvRAXPxCHFdqUyn98KSez5E.",
+    "role_id": 1
+  },
+  {
+    "first_name": "Ivan",
+    "last_name": "Ivanov",
+    "username": "admin",
+    "password": "$2b$12$cSmhVE6rBInlQBatBW1Zbun0wk84FogHt6TB1MECDft95HPOzjlEm",
+    "role_id": 3
+  },
+  {
+    "first_name": "Alex",
+    "last_name": "Miles",
+    "username": "manager",
+    "password": "$2b$12$rYTs8l8/8nWg4OYH.PxGq.HOJanjihbdGnLYh7eaEcckvtHWekCUO",
+    "role_id": 2
+  },
+  {
+    "first_name": "John",
+    "last_name": "Smith",
+    "username": "superadmin",
+    "password": "$2b$12$PGro.a5/wITN.VVjDVcfG.8avX3/dVQ/dMCk0BBoQHu61T0SChdJa",
+    "role_id": 4
+  }
+]

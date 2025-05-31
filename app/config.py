@@ -1,7 +1,11 @@
+from typing import Literal
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    MODE: Literal['DEV', 'TEST', 'PROD'] = 'DEV'
+
     SECRET_KEY: str
     ALGORITHM: str
 

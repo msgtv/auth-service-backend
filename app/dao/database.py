@@ -3,19 +3,32 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Annotated
 
+from sqlalchemy import NullPool
 from sqlalchemy import func, TIMESTAMP, Integer, inspect
 from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase, declared_attr
 from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_engine, AsyncSession
 
 from app.config import settings
 
-DATABASE_URL = (
-    'postgresql+asyncpg://'
-    f'{settings.POSTGRES_USER}:{settings.POSTGRES_PASSWORD}@'
-    f'{settings.POSTGRES_HOST}:{settings.POSTGRES_PORT}/{settings.POSTGRES_DB}'
-)
+if settings.MODE == 'TEST':
+    DATABASE_URL = (
+        'postgresql+asyncpg://'
+        f'{settings.TEST_POSTGRES_USER}:'
+        f'{settings.TEST_POSTGRES_PASSWORD}@'
+        f'{settings.TEST_POSTGRES_HOST}:'
+        f'{settings.TEST_POSTGRES_PORT}/'
+        f'{settings.TEST_POSTGRES_DB}'
+    )
+    params = {'poolclass': NullPool}
+else:
+    DATABASE_URL = (
+        'postgresql+asyncpg://'
+        f'{settings.POSTGRES_USER}:{settings.POSTGRES_PASSWORD}@'
+        f'{settings.POSTGRES_HOST}:{settings.POSTGRES_PORT}/{settings.POSTGRES_DB}'
+    )
+    params = {}
 
-engine = create_async_engine(url=DATABASE_URL)
+engine = create_async_engine(url=DATABASE_URL, **params)
 async_session_maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 str_uniq = Annotated[str, mapped_column(unique=True, nullable=False)]
 
