@@ -4,6 +4,7 @@ from app.dao.database import Base, str_uniq
 
 
 class Role(Base):
+    """Роль пользователя"""
     name: Mapped[str_uniq]
     users: Mapped[list["User"]] = relationship(back_populates="role")
 
@@ -12,6 +13,7 @@ class Role(Base):
 
 
 class User(Base):
+    """Пользователь"""
     first_name: Mapped[str]
     last_name: Mapped[str]
     username: Mapped[str_uniq]

@@ -5,12 +5,32 @@ from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.models import User
-from app.auth.utils import authenticate_user, create_tokens
-from app.dependencies.auth_dep import get_current_user, get_current_admin_user, check_refresh_token, get_session_id
-from app.dependencies.dao_dep import get_session_with_commit, get_session_without_commit
-from app.exceptions import UserAlreadyExistsException, IncorrectEmailOrPasswordException
 from app.auth.dao import UsersDAO
-from app.auth.schemas import SUserRegister, UsernameModel, SUserAddDB, SUserInfo, STokens, SRefreshToken
+from app.auth.utils import (
+    password_service, 
+    token_service,
+)
+from app.exceptions import (
+    UserAlreadyExistsException, 
+    IncorrectEmailOrPasswordException,
+)
+from app.auth.schemas import (
+    SUserRegister, 
+    UsernameModel, 
+    SUserAddDB, 
+    SUserInfo, 
+    STokens, 
+    SRefreshToken,
+)
+from app.auth.dependencies import (
+    get_current_user, 
+    get_current_admin_user, 
+    get_client_fingerprint,
+)
+from app.dao.dependencies import (
+    get_session_with_commit, 
+    get_session_without_commit,
+)
 
 router = APIRouter()
 
@@ -20,6 +40,13 @@ async def register_user(
         user_data: SUserRegister,
         db_session: AsyncSession = Depends(get_session_with_commit)
 ) -> dict:
+    """
+    Регистрация нового пользователя
+
+    Args:
+        user_data: Данные для регистрации
+        db_session: Сессия базы данных
+    """
     # Проверка существования пользователя
     user_dao = UsersDAO(db_session)
 
@@ -44,34 +71,57 @@ async def register_user(
 async def get_tokens(
         form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
         db_session: AsyncSession = Depends(get_session_without_commit),
-        session_id: str = Depends(get_session_id),
+        client_fingerprint: str = Depends(get_client_fingerprint),
 ) -> STokens:
+    """
+    Получаем токены для пользователя
+
+    Args:
+        form_data: Данные для авторизации
+        db_session: Сессия базы данных
+        client_fingerprint: Уникальный идентификатор клиента
+    """
     users_dao = UsersDAO(db_session)
     user = await users_dao.find_one_or_none(
         filters=UsernameModel(username=form_data.username)
     )
 
-    if not (user and await authenticate_user(user=user, password=form_data.password)):
+    if not (user and password_service.authenticate_user(user=user, password=form_data.password)):
         raise IncorrectEmailOrPasswordException(
             headers={'WWW-Authenticate': 'Bearer'},
         )
-    
-    # TODO: Сохранить токены в базу данных или кэш Redis
-    
-    logger.info(f"Session ID: {session_id}")
 
-    return STokens(**create_tokens(data={"sub": str(user.id)}, session_id=session_id))
+    return STokens(
+        **token_service.create_tokens(
+            data={"sub": str(user.id)},
+            client_fingerprint=client_fingerprint,
+        )
+    )
 
 
 @router.post("/logout")
-async def logout(response: Response):
-    # TODO: Удалить токены из базы данных или кэша Redis
+async def logout(
+        user: User = Depends(get_current_user),
+):
+    """
+    Выход из системы
+
+    Args:
+        response: Ответ
+    """
+    
     return {'message': 'Пользователь успешно вышел из системы'}
 
 
 @router.get("/me")
-async def get_me(user_data: User = Depends(get_current_user)) -> SUserInfo:
-    return SUserInfo.model_validate(user_data)
+async def get_me(user: User = Depends(get_current_user)) -> SUserInfo:
+    """
+    Получаем информацию о текущем пользователе
+
+    Args:
+        user_data: Данные о пользователе
+    """
+    return user
 
 
 @router.get(
@@ -81,6 +131,12 @@ async def get_me(user_data: User = Depends(get_current_user)) -> SUserInfo:
 async def get_all_users(
         db_session: AsyncSession = Depends(get_session_without_commit)
 ) -> List[SUserInfo]:
+    """
+    Получаем всех пользователей
+
+    Args:
+        db_session: Сессия базы данных
+    """
     return await UsersDAO(db_session).find_all()
 
 
@@ -90,12 +146,25 @@ async def process_refresh_token(
         refresh_token: SRefreshToken,
         request: Request,
 ) -> STokens:
-    session_id = get_session_id(request)
+    """
+    Обновляем токены для пользователя
+
+    Args:
+        db_session: Сессия базы данных
+        refresh_token: Токен для обновления
+        request: Запрос
+    """
+    client_fingerprint = get_client_fingerprint(request)
     user = await get_current_user(
         token=refresh_token.refresh_token,
         db_session=db_session,
         token_type="refresh",
-        session_id=session_id
+        client_fingerprint=client_fingerprint
     )
 
-    return STokens(**create_tokens(data={"sub": str(user.id)}, session_id=session_id))
+    return STokens(
+        **token_service.create_tokens(
+            data={"sub": str(user.id)},
+            client_fingerprint=client_fingerprint,
+        )
+    )

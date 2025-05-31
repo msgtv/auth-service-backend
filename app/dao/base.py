@@ -5,12 +5,15 @@ from sqlalchemy.future import select
 from sqlalchemy import update as sqlalchemy_update, delete as sqlalchemy_delete, func
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
-from .database import Base
+
+from app.dao.database import Base
+
 
 T = TypeVar("T", bound=Base)
 
 
 class BaseDAO(Generic[T]):
+    """Базовый класс для работы с моделями"""
     model: Type[T] = None
 
     def __init__(self, session: AsyncSession):
@@ -19,6 +22,7 @@ class BaseDAO(Generic[T]):
             raise ValueError("Модель должна быть указана в дочернем классе")
 
     async def find_one_or_none_by_id(self, data_id: int):
+        """Поиск одной записи по ID"""
         try:
             query = select(self.model).filter_by(id=data_id)
             result = await self._session.execute(query)
@@ -31,6 +35,12 @@ class BaseDAO(Generic[T]):
             raise
 
     async def find_one_or_none(self, filters: BaseModel):
+        """
+        Поиск одной записи по фильтрам
+        
+        Args:
+            filters: Фильтры
+        """
         filter_dict = filters.model_dump(exclude_unset=True)
         logger.info(f"Поиск одной записи {self.model.__name__} по фильтрам: {filter_dict}")
         try:
@@ -45,6 +55,12 @@ class BaseDAO(Generic[T]):
             raise
 
     async def find_all(self, filters: BaseModel | None = None):
+        """
+        Поиск всех записей по фильтрам
+        
+        Args:
+            filters: Фильтры
+        """
         filter_dict = filters.model_dump(exclude_unset=True) if filters else {}
         logger.info(f"Поиск всех записей {self.model.__name__} по фильтрам: {filter_dict}")
         try:
@@ -58,6 +74,12 @@ class BaseDAO(Generic[T]):
             raise
 
     async def add(self, values: BaseModel):
+        """
+        Добавление записи
+        
+        Args:
+            values: Значения для добавления
+        """
         values_dict = values.model_dump(exclude_unset=True)
         logger.info(f"Добавление записи {self.model.__name__} с параметрами: {values_dict}")
         try:
@@ -71,6 +93,12 @@ class BaseDAO(Generic[T]):
             raise
 
     async def add_many(self, instances: List[BaseModel]):
+        """
+        Добавление нескольких записей
+        
+        Args:
+            instances: Список записей
+        """
         values_list = [item.model_dump(exclude_unset=True) for item in instances]
         logger.info(f"Добавление нескольких записей {self.model.__name__}. Количество: {len(values_list)}")
         try:
@@ -84,6 +112,13 @@ class BaseDAO(Generic[T]):
             raise
 
     async def update(self, filters: BaseModel, values: BaseModel):
+        """
+        Обновление записи
+        
+        Args:
+            filters: Фильтры
+            values: Значения для обновления
+        """
         filter_dict = filters.model_dump(exclude_unset=True)
         values_dict = values.model_dump(exclude_unset=True)
         logger.info(
@@ -104,6 +139,12 @@ class BaseDAO(Generic[T]):
             raise
 
     async def delete(self, filters: BaseModel):
+        """
+        Удаление записи
+        
+        Args:
+            filters: Фильтры
+        """
         filter_dict = filters.model_dump(exclude_unset=True)
         logger.info(f"Удаление записей {self.model.__name__} по фильтру: {filter_dict}")
         if not filter_dict:
@@ -120,6 +161,12 @@ class BaseDAO(Generic[T]):
             raise
 
     async def count(self, filters: BaseModel | None = None):
+        """
+        Подсчет количества записей по фильтру
+        
+        Args:
+            filters: Фильтры
+        """
         filter_dict = filters.model_dump(exclude_unset=True) if filters else {}
         logger.info(f"Подсчет количества записей {self.model.__name__} по фильтру: {filter_dict}")
         try:
@@ -133,6 +180,12 @@ class BaseDAO(Generic[T]):
             raise
 
     async def bulk_update(self, records: List[BaseModel]):
+        """
+        Массовое обновление записей
+        
+        Args:
+            records: Список записей
+        """
         logger.info(f"Массовое обновление записей {self.model.__name__}")
         try:
             updated_count = 0

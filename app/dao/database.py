@@ -2,9 +2,11 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 from typing import Annotated
+
 from sqlalchemy import func, TIMESTAMP, Integer, inspect
 from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase, declared_attr
 from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_engine, AsyncSession
+
 from app.config import settings
 
 DATABASE_URL = (
@@ -12,6 +14,7 @@ DATABASE_URL = (
     f'{settings.POSTGRES_USER}:{settings.POSTGRES_PASSWORD}@'
     f'{settings.POSTGRES_HOST}:{settings.POSTGRES_PORT}/{settings.POSTGRES_DB}'
 )
+
 engine = create_async_engine(url=DATABASE_URL)
 async_session_maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 str_uniq = Annotated[str, mapped_column(unique=True, nullable=False)]
