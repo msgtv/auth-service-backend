@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     REDIS_DB: int
     REDIS_PASSWORD: str | None
 
-    model_config = SettingsConfigDict(env_file=f".env")
+    model_config = SettingsConfigDict(env_file=".env")
 
 
 # Получаем параметры для загрузки переменных среды
