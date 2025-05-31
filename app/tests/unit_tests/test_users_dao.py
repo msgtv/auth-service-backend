@@ -12,7 +12,7 @@ from app.auth.schemas import UsernameModel
         ('admin', 3, True),
         ('manager', 2, True),
         ('superadmin', 4, True),
-        ('superadmin', 2, False),
+        ('root', 2, False),
     ]
 )
 async def test_get_user_by_username(

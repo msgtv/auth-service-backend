@@ -20,6 +20,13 @@ if settings.MODE == 'TEST':
         f'{settings.TEST_POSTGRES_DB}'
     )
     params = {'poolclass': NullPool}
+    
+    REDIS_URL = (
+        f'redis://:{settings.TEST_REDIS_PASSWORD}@'
+        f'{settings.TEST_REDIS_HOST}:'
+        f'{settings.TEST_REDIS_PORT}/'
+        f'{settings.TEST_REDIS_DB}'
+    )
 else:
     DATABASE_URL = (
         'postgresql+asyncpg://'
@@ -27,6 +34,13 @@ else:
         f'{settings.POSTGRES_HOST}:{settings.POSTGRES_PORT}/{settings.POSTGRES_DB}'
     )
     params = {}
+    
+    REDIS_URL = (
+        f'redis://:{settings.REDIS_PASSWORD}@'
+        f'{settings.REDIS_HOST}:'
+        f'{settings.REDIS_PORT}/'
+        f'{settings.REDIS_DB}'
+    )
 
 engine = create_async_engine(url=DATABASE_URL, **params)
 async_session_maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)

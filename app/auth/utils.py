@@ -30,15 +30,15 @@ class TokenService:
             algorithm=settings.ALGORITHM
         )
     
-    def _store_token(
+    async def _store_token(
             self,
             subject: int | str,
             token: str,
             token_type: Literal['access', 'refresh'],
             expire_time: datetime,
             client_fingerprint: str,
-    ):
-        self.redis_manager.store_token(
+    ) -> None:
+        await self.redis_manager.store_token(
             subject=subject,
             token=token,
             token_type=token_type,
@@ -46,7 +46,7 @@ class TokenService:
             client_fingerprint=client_fingerprint,
         )
     
-    def create_tokens(
+    async def create_tokens(
             self,
             data: dict,
             client_fingerprint: str,
@@ -76,7 +76,7 @@ class TokenService:
         )
 
         # Store tokens in Redis
-        self._store_token(
+        await self._store_token(
             subject=data["sub"],
             token=access_token,
             token_type="access",
@@ -84,7 +84,7 @@ class TokenService:
             client_fingerprint=client_fingerprint
         )
         
-        self._store_token(
+        await self._store_token(
             subject=data["sub"],
             token=refresh_token,
             token_type="refresh",
@@ -97,7 +97,7 @@ class TokenService:
             "refresh_token": refresh_token,
         }
 
-    def verify_token(
+    async def verify_token(
             self,
             token: str,
             user_id: int,
@@ -113,14 +113,14 @@ class TokenService:
             token_type: Тип токена (access или refresh)
             client_fingerprint: ID сессии
         """
-        return self.redis_manager.is_token_verified(
+        return await self.redis_manager.is_token_verified(
             subject=user_id,
             token_type=token_type,
             token=token,
             client_fingerprint=client_fingerprint,
         )
 
-    def invalidate_token(
+    async def invalidate_token(
             self,
             user_id: int,
             token_type: Literal["access", "refresh"],
@@ -134,13 +134,13 @@ class TokenService:
             token_type: Тип токена (access или refresh)
             client_fingerprint: ID сессии
         """
-        self.redis_manager.invalidate_token(
+        await self.redis_manager.invalidate_token(
             subject=user_id,
             token_type=token_type,
             client_fingerprint=client_fingerprint,
         )
 
-    def invalidate_token_pair(
+    async def invalidate_token_pair(
             self,
             user_id: int,
             client_fingerprint: str,
@@ -152,12 +152,12 @@ class TokenService:
             user_id: ID пользователя
             client_fingerprint: ID сессии
         """
-        self.redis_manager.invalidate_token_pair(
+        await self.redis_manager.invalidate_token_pair(
             subject=user_id,
             client_fingerprint=client_fingerprint,
         )
 
-    def invalidate_all_tokens(
+    async def invalidate_all_tokens(
             self,
             user_id: int,
     ) -> None:
@@ -167,7 +167,7 @@ class TokenService:
         Args:
             user_id: ID пользователя
         """
-        self.redis_manager.invalidate_all_user_tokens(user_id)
+        await self.redis_manager.invalidate_all_user_tokens(user_id)
 
     def decode_token(self, token: str) -> dict:
         """Декодировать токен"""

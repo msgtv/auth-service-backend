@@ -2,9 +2,11 @@ import json
 from datetime import datetime
 
 import pytest
+import redis.asyncio as redis
 from sqlalchemy import insert
 from httpx import AsyncClient, ASGITransport
 
+from app.auth.redis_manager import RedisTokenManager
 from app.main import app as fastapi_app
 from app.config import settings
 from app.dao.database import Base, async_session_maker, engine
@@ -84,3 +86,38 @@ async def client_tokens():
 async def session():
     async with async_session_maker() as session:
         yield session
+
+
+@pytest.fixture(scope='session')
+async def redis_client():
+    assert settings.MODE == 'TEST'
+    
+    client = redis.Redis(
+        host=settings.REDIS_HOST,
+        port=settings.REDIS_PORT,
+        password=settings.REDIS_PASSWORD,
+        db=1,  # Using different DB for tests
+        decode_responses=True
+    )
+    
+    try:
+        yield client
+    finally:
+        await client.flushdb()  # Clean up after tests
+        await client.aclose()
+
+
+@pytest.fixture(scope='function')
+def redis_token_manager(redis_client):
+    """Фикстура для создания RedisTokenManager с тестовым Redis-клиентом""" 
+    manager = RedisTokenManager()
+    manager.redis_client = redis_client
+    return manager
+
+
+@pytest.fixture(autouse=True, scope="function")
+async def clean_redis(redis_client):
+    try:
+        yield
+    finally:
+        await redis_client.flushdb()  # Clean Redis after each test
