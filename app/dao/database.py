@@ -7,6 +7,7 @@ from sqlalchemy import NullPool
 from sqlalchemy import func, TIMESTAMP, Integer, inspect
 from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase, declared_attr
 from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_engine, AsyncSession
+from loguru import logger
 
 from app.config import settings
 
@@ -41,6 +42,9 @@ else:
         f'{settings.REDIS_PORT}/'
         f'{settings.REDIS_DB}'
     )
+
+logger.info(f'DATABASE_URL: {DATABASE_URL}')
+logger.info(f'REDIS_URL: {REDIS_URL}')
 
 engine = create_async_engine(url=DATABASE_URL, **params)
 async_session_maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
