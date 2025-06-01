@@ -1,6 +1,6 @@
 import pytest
 from datetime import datetime, timedelta, timezone
-from unittest.mock import Mock
+from pytest_mock import MockerFixture
 from fastapi import Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -24,7 +24,7 @@ from app.tests.unit_tests.base import BaseUnitTest
 
 
 class TestAuthDependencies(BaseUnitTest):
-    def setup_mocks(self):
+    def setup_mocks(self, mocker: MockerFixture):
         """
         Создаем mock-объекты для тестов
         - mock_user: Пользователь
@@ -32,51 +32,55 @@ class TestAuthDependencies(BaseUnitTest):
         - mock_client_fingerprint: Отпечаток клиента
         - mock_find_user: Метод для поиска пользователя
         """
-        self.mock_user = Mock(
+        self.mock_user = mocker.Mock(
             id=1,
             username="testuser",
             password="hashedpassword",
             role_id=1,
         )
         
-        self.mock_request = Mock(spec=Request)
+        self.mock_request = mocker.Mock(spec=Request)
         self.mock_request.cookies = {}
         self.mock_request.headers = {}
-        self.mock_request.client = Mock()
+        self.mock_request.client = mocker.Mock()
         self.mock_request.client.host = "127.0.0.1"
         
         self.mock_client_fingerprint = "test_fingerprint"
         
         self.mock_find_user = lambda: self.mock_user
     
-    async def test_get_refresh_token_success(self):
+    async def test_get_refresh_token_success(self, mocker: MockerFixture):
         """
         Тест получения refresh_token
         """
+        self.setup_mocks(mocker)
         self.mock_request.cookies["user_refresh_token"] = "test_token"
         token = get_refresh_token(self.mock_request)
         assert token == "test_token"
     
-    async def test_get_refresh_token_not_found(self):
+    async def test_get_refresh_token_not_found(self, mocker: MockerFixture):
         """
         Тест получения refresh_token, который не найден
         """
+        self.setup_mocks(mocker)
         with pytest.raises(TokenNoFound):
             get_refresh_token(self.mock_request)
     
-    async def test_get_client_fingerprint(self):
+    async def test_get_client_fingerprint(self, mocker: MockerFixture):
         """
         Тест получения отпечатка клиента
         """
+        self.setup_mocks(mocker)
         self.mock_request.headers["User-Agent"] = "test-agent"
         fingerprint = get_client_fingerprint(self.mock_request)
         assert isinstance(fingerprint, str)
         assert len(fingerprint) > 0
     
-    async def test_check_refresh_token_success(self, session: AsyncSession):
+    async def test_check_refresh_token_success(self, mocker: MockerFixture, session: AsyncSession):
         """
         Тест проверки refresh_token
         """
+        self.setup_mocks(mocker)
         # Create a test user
         user_id = 1
         test_user = User(id=user_id, username="test", password="test", role_id=1)
@@ -97,17 +101,19 @@ class TestAuthDependencies(BaseUnitTest):
         user = await check_refresh_token(token, session)
         assert user.id == user_id
 
-    async def test_check_refresh_token_invalid(self, session: AsyncSession):
+    async def test_check_refresh_token_invalid(self, mocker: MockerFixture, session: AsyncSession):
         """
         Тест проверки refresh_token, который не является валидным
         """
+        self.setup_mocks(mocker)
         with pytest.raises(NoJwtException):
             await check_refresh_token("invalid_token", session)
     
-    async def test_get_current_user_success(self, session: AsyncSession):        
+    async def test_get_current_user_success(self, mocker: MockerFixture, session: AsyncSession):        
         """
         Тест получения текущего пользователя
         """
+        self.setup_mocks(mocker)
         # Create valid token
         tokens = await token_service.create_tokens(
             data={"sub": str(self.mock_user.id)},
@@ -120,10 +126,11 @@ class TestAuthDependencies(BaseUnitTest):
         
         assert user.id == self.mock_user.id
     
-    async def test_get_current_user_expired_token(self, session: AsyncSession):        
+    async def test_get_current_user_expired_token(self, mocker: MockerFixture, session: AsyncSession):        
         """
         Тест получения текущего пользователя с истекшим токеном
         """
+        self.setup_mocks(mocker)
         # Create expired token
         token = token_service._create_token(
             {"sub": str(self.mock_user.id)},
@@ -134,34 +141,38 @@ class TestAuthDependencies(BaseUnitTest):
         with pytest.raises(TokenExpiredException):
             await get_current_user(token, session, self.mock_client_fingerprint)
     
-    async def test_get_current_admin_user_success(self):
+    async def test_get_current_admin_user_success(self, mocker: MockerFixture):
         """
         Тест получения текущего администратора
         """
+        self.setup_mocks(mocker)
         admin_user = User(id=1, username="admin", password="test", role_id=4)
         result = await get_current_admin_user(admin_user)
         assert result == admin_user
 
-    async def test_get_current_admin_user_forbidden(self):
+    async def test_get_current_admin_user_forbidden(self, mocker: MockerFixture):
         """
         Тест получения текущего администратора, который не является администратором
         """
+        self.setup_mocks(mocker)
         regular_user = User(id=1, username="user", password="test", role_id=1)
         with pytest.raises(ForbiddenException):
             await get_current_admin_user(regular_user)
     
-    async def test_get_current_superadmin_user_success(self):
+    async def test_get_current_superadmin_user_success(self, mocker: MockerFixture):
         """
         Тест получения текущего супер-администратора
         """
+        self.setup_mocks(mocker)
         superadmin_user = User(id=1, username="superadmin", password="test", role_id=4)
         result = await get_current_superadmin_user(superadmin_user)
         assert result == superadmin_user
 
-    async def test_get_current_superadmin_user_forbidden(self):
+    async def test_get_current_superadmin_user_forbidden(self, mocker: MockerFixture):
         """
         Тест получения текущего супер-администратора, который не является супер-администратором
         """
+        self.setup_mocks(mocker)
         admin_user = User(id=1, username="admin", password="test", role_id=3)
         with pytest.raises(ForbiddenException):
             await get_current_superadmin_user(admin_user)

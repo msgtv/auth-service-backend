@@ -1,6 +1,6 @@
 import pytest
 from datetime import datetime, timedelta, timezone
-from unittest.mock import Mock, patch
+from pytest_mock import MockerFixture
 from app.auth.utils import password_service, token_service
 from app.tests.unit_tests.base import BaseUnitTest
 
@@ -19,12 +19,12 @@ class TestPasswordService(BaseUnitTest):
         assert password_service.verify_password(password, hashed)
         assert not password_service.verify_password("wrong_password", hashed)
     
-    def test_authenticate_user(self):
+    def test_authenticate_user(self, mocker: MockerFixture):
         """Тест аутентификации пользователя"""
         # Подготовка
         password = "test_password123"
         hashed_password = password_service.get_password_hash(password)
-        mock_user = Mock(password=hashed_password)
+        mock_user = mocker.Mock(password=hashed_password)
         
         # Действие и проверка
         assert password_service.authenticate_user(user=mock_user, password=password)

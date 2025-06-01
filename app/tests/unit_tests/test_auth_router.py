@@ -1,6 +1,6 @@
 import pytest
 from datetime import datetime, timezone, timedelta
-from unittest.mock import Mock, AsyncMock
+from pytest_mock import MockerFixture
 
 from fastapi import Request
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,7 +26,7 @@ from app.auth.utils import token_service
 
 
 class TestAuthRouter(BaseUnitTest):
-    def setup_mocks(self):
+    def setup_mocks(self, mocker: MockerFixture):
         """
         Создаем mock-объекты для тестов
         - mock_user: Пользователь
@@ -37,14 +37,14 @@ class TestAuthRouter(BaseUnitTest):
         - mock_request: Запрос
         - mock_client_fingerprint: Отпечаток клиента
         """
-        self.mock_user = Mock(
+        self.mock_user = mocker.Mock(
             id=1,
             username="testuser",
             password="hashedpassword",
             role_id=1,
         )
     
-        self.mock_admin_user = Mock(
+        self.mock_admin_user = mocker.Mock(
             id=2,
             username="adminuser",
             password="hashedpassword",
@@ -59,10 +59,10 @@ class TestAuthRouter(BaseUnitTest):
         
         self.mock_find_all = lambda: self.mock_all_users
         
-        self.mock_request = Mock(spec=Request)
+        self.mock_request = mocker.Mock(spec=Request)
         self.mock_request.cookies = {}
         self.mock_request.headers = {}
-        self.mock_request.client = Mock()
+        self.mock_request.client = mocker.Mock()
         self.mock_request.client.host = "127.0.0.1"
         
         self.mock_client_fingerprint = "test_fingerprint"
@@ -75,6 +75,7 @@ class TestAuthRouter(BaseUnitTest):
     )
     async def test_register_user(
         self, 
+        mocker: MockerFixture,
         session: AsyncSession, 
         username: str, 
         password: str, 
@@ -86,6 +87,7 @@ class TestAuthRouter(BaseUnitTest):
         """
         Тест регистрации пользователя
         """
+        self.setup_mocks(mocker)
         user_data = SUserRegister(
             username=username,
             password=password,
@@ -94,17 +96,19 @@ class TestAuthRouter(BaseUnitTest):
             last_name=last_name,
         )
         
-        session.execute = AsyncMock(return_value=Mock(scalar_one_or_none=self.mock_none))
+        async_mock = mocker.AsyncMock(return_value=mocker.Mock(scalar_one_or_none=self.mock_none))
+        session.execute = async_mock
         
         result = await register_user(user_data, session)
         
         if expected_result is True:
             assert result == {'message': 'Вы успешно зарегистрированы!'}
     
-    async def test_register_user_already_exists(self, session: AsyncSession):
+    async def test_register_user_already_exists(self, mocker: MockerFixture, session: AsyncSession):
         """
         Тест регистрации пользователя, который уже существует
         """
+        self.setup_mocks(mocker)
         user_data = SUserRegister(
             username="newuser",
             password="password123",
@@ -113,16 +117,18 @@ class TestAuthRouter(BaseUnitTest):
             last_name="Doe",
         )
         
-        session.execute = AsyncMock(return_value=Mock(scalar_one_or_none=self.mock_user))
+        async_mock = mocker.AsyncMock(return_value=mocker.Mock(scalar_one_or_none=self.mock_user))
+        session.execute = async_mock
         
         with pytest.raises(UserAlreadyExistsException):
             await register_user(user_data, session)
 
-    async def test_get_tokens_success(self, session: AsyncSession):
+    async def test_get_tokens_success(self, mocker: MockerFixture, session: AsyncSession):
         """
         Тест получения токенов
         """
-        form_data = Mock()
+        self.setup_mocks(mocker)
+        form_data = mocker.Mock()
         form_data.username = "testuser"
         form_data.password = "defaultuser"
         
@@ -131,30 +137,33 @@ class TestAuthRouter(BaseUnitTest):
             user.password = '$2b$12$W7NY9VZvCIYY7BTAQAlPuezbntP0ncvRAXPxCHFdqUyn98KSez5E.'
             return user
         
-        session.execute = AsyncMock(return_value=Mock(scalar_one_or_none=mock_find_user))
+        async_mock = mocker.AsyncMock(return_value=mocker.Mock(scalar_one_or_none=mock_find_user))
+        session.execute = async_mock
         
         result = await get_tokens(form_data, session, "test_fingerprint")
         assert "access_token" in result.model_dump()
         assert "refresh_token" in result.model_dump()
 
-    async def test_get_tokens_invalid_credentials(self, session: AsyncSession):
+    async def test_get_tokens_invalid_credentials(self, mocker: MockerFixture, session: AsyncSession):
         """
         Тест получения токенов с неверными учетными данными
         """
-        form_data = Mock()
+        self.setup_mocks(mocker)
+        form_data = mocker.Mock()
         form_data.username = "testuser"
         form_data.password = "wrongpassword"
         
-        session.execute = AsyncMock(return_value=Mock(scalar_one_or_none=self.mock_none))
+        async_mock = mocker.AsyncMock(return_value=mocker.Mock(scalar_one_or_none=self.mock_none))
+        session.execute = async_mock
         
         with pytest.raises(IncorrectEmailOrPasswordException):
             await get_tokens(form_data, session, "test_fingerprint")
 
-    async def test_logout_success(self):
+    async def test_logout_success(self, mocker: MockerFixture):
         """
         Тест выхода из системы
         """
-        
+        self.setup_mocks(mocker)
         fingerprint = get_client_fingerprint(self.mock_request)
         
         await token_service.create_tokens(
@@ -168,19 +177,22 @@ class TestAuthRouter(BaseUnitTest):
         )
         assert result == {'message': 'Пользователь успешно вышел из системы'}
 
-    async def test_get_me(self):
+    async def test_get_me(self, mocker: MockerFixture):
         """
         Тест получения информации о пользователе
         """
+        self.setup_mocks(mocker)
         result = await get_me(self.mock_user)
         assert result.id == self.mock_user.id
         assert result.username == self.mock_user.username
 
-    async def test_get_all_users_success(self, session: AsyncSession):
+    async def test_get_all_users_success(self, mocker: MockerFixture, session: AsyncSession):
         """
         Тест получения всех пользователей
         """
-        session.execute = AsyncMock(return_value=Mock(scalars=Mock(return_value=Mock(all=self.mock_find_all))))
+        self.setup_mocks(mocker)
+        async_mock = mocker.AsyncMock(return_value=mocker.Mock(scalars=mocker.Mock(return_value=mocker.Mock(all=self.mock_find_all))))
+        session.execute = async_mock
         
         result = await get_all_users(session)
         assert len(result) == 2

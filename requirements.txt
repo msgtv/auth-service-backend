@@ -15,3 +15,4 @@ sqladmin
 redis
 pytest
 pytest-asyncio
+pytest-mock
