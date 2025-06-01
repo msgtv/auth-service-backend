@@ -13,7 +13,7 @@ from app.dao.database import Base, async_session_maker, engine
 from app.auth.models import Role, User
 
 
-@pytest.fixture(autouse=True, scope="session")
+@pytest.fixture(autouse=True, scope="module")
 async def prepare_database():
     assert settings.MODE == 'TEST'
 
@@ -47,48 +47,37 @@ async def ac():
         yield client
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='function')
 async def client_tokens():
     async with AsyncClient(
         transport=ASGITransport(app=fastapi_app),
         base_url="http://test/",
     ) as ac:
-        email = "teststests"
-        passw = "teststests"
-
-        await ac.post(
-            "/auth/register",
-            json={
-                "email": email,
-                "password": passw,
-                "confirm_password": passw,
-            }
-        )
-
         res = await ac.post(
             "/auth/token",
             data={
-                "username": email,
-                "password": passw,
+                "username": 'defaultuser',
+                "password": 'defaultuser',
             }
         )
 
         assert res.status_code == 200
 
-        tokens = await res.json()
+        tokens = res.json()
 
         assert tokens.get('access_token')
         assert tokens.get('refresh_token')
 
     return tokens
 
-@pytest.fixture(scope='function')
+
+@pytest.fixture(scope='module')
 async def session():
     async with async_session_maker() as session:
         yield session
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='module')
 async def redis_client():
     assert settings.MODE == 'TEST'
     
@@ -107,7 +96,7 @@ async def redis_client():
         await client.aclose()
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope='module')
 def redis_token_manager(redis_client):
     """Фикстура для создания RedisTokenManager с тестовым Redis-клиентом""" 
     manager = RedisTokenManager()
@@ -115,7 +104,7 @@ def redis_token_manager(redis_client):
     return manager
 
 
-@pytest.fixture(autouse=True, scope="function")
+@pytest.fixture(autouse=True, scope="module")
 async def clean_redis(redis_client):
     try:
         yield

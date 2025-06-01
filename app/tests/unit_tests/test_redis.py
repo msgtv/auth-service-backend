@@ -12,7 +12,7 @@ async def test_redis_operations(redis_client):
 
 async def test_redis_cleanup(redis_client):
     # Test that cleanup works between tests
-    result = await redis_client.get("test_key")
+    result = await redis_client.get("test_key_none")
     
     assert result is None  # Previous test data should be cleaned
 

@@ -82,7 +82,6 @@ class TestTokenService(BaseUnitTest):
         """Тест создания access token"""
         # Подготовка
         data = {"sub": "123"}
-        client_fingerprint = "test_device"
         expire_time = datetime.now(timezone.utc) + timedelta(minutes=15)
         
         # Действие
@@ -131,7 +130,7 @@ class TestTokenService(BaseUnitTest):
         assert result
         
         # Проверяем refresh token
-        result = decoded_refresh = await token_service.verify_token(
+        result = await token_service.verify_token(
             user_id=data["sub"],
             token=tokens["refresh_token"],
             client_fingerprint=client_fingerprint,
@@ -166,7 +165,7 @@ class TestTokenService(BaseUnitTest):
         # Действие и проверка
         if should_raise:
             with pytest.raises(Exception):
-                token_service.verify_token(
+                await token_service.verify_token(
                     token=token,
                     client_fingerprint=fingerprint,
                     token_type=token_type
