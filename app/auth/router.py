@@ -55,7 +55,7 @@ async def register_user(
     )
 
     if existing_user:
-        raise UserAlreadyExistsException
+        raise UserAlreadyExistsException()
 
     # Подготовка данных для добавления
     user_data_dict = user_data.model_dump()
@@ -90,17 +90,20 @@ async def get_tokens(
         raise IncorrectEmailOrPasswordException(
             headers={'WWW-Authenticate': 'Bearer'},
         )
-
-    return STokens(
-        **token_service.create_tokens(
+        
+    tokens = await token_service.create_tokens(
             data={"sub": str(user.id)},
             client_fingerprint=client_fingerprint,
         )
+
+    return STokens(
+        **tokens
     )
 
 
 @router.post("/logout")
 async def logout(
+        request: Request,
         user: User = Depends(get_current_user),
 ):
     """
@@ -109,6 +112,11 @@ async def logout(
     Args:
         response: Ответ
     """
+    
+    await token_service.invalidate_token_pair(
+        user_id=user.id,
+        client_fingerprint=get_client_fingerprint(request),
+    )
     
     return {'message': 'Пользователь успешно вышел из системы'}
 
@@ -161,10 +169,12 @@ async def process_refresh_token(
         token_type="refresh",
         client_fingerprint=client_fingerprint
     )
+    
+    tokens = await token_service.create_tokens(
+        data={"sub": str(user.id)},
+        client_fingerprint=client_fingerprint,
+    )
 
     return STokens(
-        **token_service.create_tokens(
-            data={"sub": str(user.id)},
-            client_fingerprint=client_fingerprint,
-        )
+        **tokens
     )

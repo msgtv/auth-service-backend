@@ -76,32 +76,30 @@ async def get_current_user(
         client_fingerprint: str = Depends(get_client_fingerprint),
         token_type: str = "access",
 ) -> User:
-    """Проверяем access_token и возвращаем пользователя."""
-    logger.info(f"Session ID: {client_fingerprint}")
-    
+    """Проверяем access_token и возвращаем пользователя."""    
     try:
         payload = token_service.decode_token(token)
     except ExpiredSignatureError:
-        raise TokenExpiredException
+        raise TokenExpiredException()
     except JWTError:
         # Общая ошибка для токенов
-        raise NoJwtException
+        raise NoJwtException()
 
     expire: str = payload.get('exp')
     expire_time = datetime.fromtimestamp(int(expire), tz=timezone.utc)
     if (not expire) or (expire_time < datetime.now(timezone.utc)):
-        raise TokenExpiredException
+        raise TokenExpiredException()
 
     user_id: str = payload.get('sub')
     if not user_id:
-        raise NoUserIdException
+        raise NoUserIdException()
     
-    if not token_service.verify_token(token, user_id, token_type, client_fingerprint):
-        raise NoSessionJwtException
+    if not await token_service.verify_token(token, user_id, token_type, client_fingerprint):
+        raise NoSessionJwtException()
 
     user = await UsersDAO(db_session).find_one_or_none_by_id(data_id=int(user_id))
     if not user:
-        raise UserNotFoundException
+        raise UserNotFoundException()
     return user
 
 
@@ -111,7 +109,7 @@ async def get_current_admin_user(
     """Проверяем права пользователя как администратора."""
     if current_user.role_id > 3:
         return current_user
-    raise ForbiddenException
+    raise ForbiddenException()
 
 
 async def get_current_superadmin_user(
@@ -120,4 +118,4 @@ async def get_current_superadmin_user(
     """Проверяем права пользователя как администратора."""
     if current_user.role_id == 4:
         return current_user
-    raise ForbiddenException
+    raise ForbiddenException()

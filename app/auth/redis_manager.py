@@ -93,5 +93,6 @@ class RedisTokenManager:
     ) -> bool:
         """Проверить, является ли токен черным списком"""
         stored_token = await self.get_token(subject, token_type, client_fingerprint)
+        
         return stored_token == token
  
